@@ -53,7 +53,14 @@ class HanimeTVIE(InfoExtractor):
 
         page = self._download_webpage(url, slug)
         title = self._search_regex(r'<h1 class="tv-title">([^<]+)', page, "title")
-        video_id = self._search_regex(rf'(\d+)\s*,\s*"{slug}"', page, "video id")
+
+        # Grab the letter used to indicate which field is the id
+        id_offset = ord(self._search_regex(rf'hentai_video:{{id:([^,]+),', page, "id offset"))-ord('a')
+
+        # Grab the fields and extract the video_id from the offset field
+        rawfields = self._search_regex(rf'\((null,.*,"{slug}",.*)\)\);', page, "fields")
+        fields = list(csv.reader(rawfields.splitlines()))
+        video_id = fields[0][id_offset]
 
         # NOTE This script is unlikely to change, so better cache it.
         if not self._script:

@@ -61,6 +61,12 @@ $ yt-dlp -f - https://hentaihaven.com/video/soshite-watashi-wa-sensei-ni/episode
 
 ## FAQ
 
+### `ERROR: Data must be padded to 16 byte boundary in CBC mode`
+
+See https://github.com/yt-dlp/yt-dlp/issues/3810.
+
+The issue is with yt-dlp's HLS fragment downloader, and a well-known fix is adding the `--downloader ffmpeg` option.
+
 ### Why supports for these sites are not already included in yt-dlp?
 
 The foundations for hanime.tv scraping were first laid out by [rxqv](https://github.com/rxqv/htv) as a separate tool, but the development ceased in 2021. Had it become dysfunctional eventually, [an issue](https://github.com/yt-dlp/yt-dlp/issues/4007) was raised for adding support for hanime.tv in upstream yt-dlp. Unfortunately, it was turned down, citing that the website allows piracy. This may have to do with the fact that YouTubeDL (yt-dlp's predecessor) had quite a controversial past; so far as to be banned from GitHub in 2020 as the result of DMCA complaint by Google.

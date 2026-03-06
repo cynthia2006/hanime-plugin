@@ -63,7 +63,7 @@ $ yt-dlp -f - https://hentaihaven.com/video/soshite-watashi-wa-sensei-ni/episode
 
 ### `ERROR: Data must be padded to 16 byte boundary in CBC mode`
 
-See https://github.com/yt-dlp/yt-dlp/issues/3810.
+See https://github.com/yt-dlp/yt-dlp/issues/3810 and https://github.com/cynthia2006/hanime-plugin/issues/8
 
 The issue is with yt-dlp's HLS fragment downloader, and a well-known fix is adding the `--downloader ffmpeg` option.
 

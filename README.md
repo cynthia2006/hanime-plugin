@@ -11,11 +11,14 @@ You can install this package with pip:
 pip install --user hanime-plugin
 ```
 
-See [installing yt-dlp plugins](https://github.com/yt-dlp/yt-dlp#installing-plugins) for the other methods this plugin package can be installed. It can also be installed using [uv](https://astral.sh/uv).
+Can also be installed using [uv](https://astral.sh/uv).
 
 ```
 uv tool install --with hanime-plugin yt-dlp
 ```
+
+>[!WARNING]
+>If a change/bug is committed but not released on PyPI, clone this repository directly, and see [installing yt-dlp plugins](https://github.com/yt-dlp/yt-dlp#installing-plugins) for how to point yt-dlp to load this plugin.
 
 ### Deno
 

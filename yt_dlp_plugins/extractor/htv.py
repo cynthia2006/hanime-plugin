@@ -6,7 +6,6 @@ from yt_dlp.utils import str_or_none, int_or_none, ExtractorError
 # TODO Allow any runtime not just Deno.
 from yt_dlp.utils._jsruntime import DenoJsRuntime
 
-
 class HanimeTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?hanime\.tv/(videos/hentai|hentai/video)/(?P<id>[a-z0-9\-]+)'
     _JS_PREAMBLE = '''
@@ -45,7 +44,7 @@ class HanimeTVIE(InfoExtractor):
 
     def _generate_credentials(self):
         output = subprocess.run([self._runtime.info.path, 'run', '-'],
-            input=self._script, text=True, capture_output=True)
+            input=self._script, encoding='utf-8', text=True, capture_output=True)
 
         if output.returncode == 0:
             creds = dict(line.split(' ', 1)
@@ -58,7 +57,7 @@ class HanimeTVIE(InfoExtractor):
     def _js_to_json(self, meta):
         output = subprocess.run([self._runtime.info.path, 'run', '-'],
                                 input=f"console.log(JSON.stringify({meta}.state.data.video.hentai_video))",
-                                text=True, capture_output=True)
+                                encoding='utf-8', text=True, capture_output=True)
 
         if output.returncode == 0:
             return json.loads(output.stdout)

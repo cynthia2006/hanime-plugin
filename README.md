@@ -35,14 +35,15 @@ irm https://deno.land/install.ps1 | iex
 
 The following is the support matrix of sites and the respective video resolutions offered. **To request support for a site, or complain about a broken site, please open a Github issue.**
 
-|                 | 720p | 1080p | 4K   |
-| --------------- | ---- | ----- | ---- |
-| hstream.moe     | ✅    | ✅ †   | ✅ †  |
-| oppai.stream    | ✅    | ✅ ‡   | ✅ ‡  |
-| hentaihaven.com | ✅    | ✅     | ❌    |
-| hanime.tv       | ✅    | ❌*    | ❌    |
-| ohentai.org     | ✅    | ❌     | ❌    |
-| hentaimama.io   | ✅    | ❌     | ❌    |
+|                 | 720p  | 1080p | 4K    |
+| --------------- | ----- | ----- | ----- |
+| hstream.moe     | ✅    | ✅ †  | ✅ †  |
+| oppai.stream    | ✅    | ✅ ‡  | ✅ ‡  |
+| hentaihaven.com | ✅    | ✅    | ❌     |
+| hanime.tv       | ✅    | ❌*    | ❌     |
+| ohentai.org     | ✅    | ❌     | ❌     |
+| hentaimama.io   | ✅    | ❌     | ❌     |
+| hanime.red      | ❌     | ✅    | ❌     |
 
 \* Requires paid membership, and is beyond the scope of this plugin.
 

@@ -2,4 +2,4 @@ __pycache__
 *.egg-info/
 *.pyc
 venv/
-build/
+dist/

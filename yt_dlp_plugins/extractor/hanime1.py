@@ -8,29 +8,12 @@ from yt_dlp.utils import (
     clean_html,
     extract_attributes,
     int_or_none,
+    orderedSet,
     traverse_obj,
-    unescapeHTML,
     unified_strdate,
-    update_url_query,
     url_or_none,
     urljoin,
 )
-
-
-_CJK_COUNT_UNITS = {'千': 1_000, '萬': 10_000, '万': 10_000, '億': 100_000_000}
-
-
-def _parse_cjk_count(text):
-    if not text:
-        return None
-    m = re.search(r'([\d.,]+)\s*([千萬万億])?', text)
-    if not m:
-        return None
-    try:
-        value = float(m.group(1).replace(',', ''))
-    except ValueError:
-        return None
-    return int(value * _CJK_COUNT_UNITS.get(m.group(2), 1))
 
 
 class Hanime1IE(InfoExtractor):
@@ -80,6 +63,21 @@ class Hanime1IE(InfoExtractor):
         'only_matching': True,
     }]
 
+    _COUNT_UNITS = {'千': 1_000, '萬': 10_000, '万': 10_000, '億': 100_000_000}
+
+    @classmethod
+    def _parse_cjk_count(cls, text):
+        if not text:
+            return None
+        m = re.search(r'([\d.,]+)\s*([千萬万億])?', text)
+        if not m:
+            return None
+        try:
+            value = float(m.group(1).replace(',', ''))
+        except ValueError:
+            return None
+        return int(value * cls._COUNT_UNITS.get(m.group(2), 1))
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
@@ -106,11 +104,10 @@ class Hanime1IE(InfoExtractor):
         else:
             title = self._html_extract_title(webpage, default=video_id)
 
-        artist_match = re.search(
+        channel_href, channel = self._html_search_regex(
             r'<a[^>]*id="video-artist-name"[^>]*href="([^"]+)"[^>]*>\s*([^<]+?)\s*</a>',
-            webpage)
-        channel = artist_match.group(2).strip() if artist_match else None
-        channel_url = urljoin(url, unescapeHTML(artist_match.group(1))) if artist_match else None
+            webpage, 'channel', group=(1, 2), default=(None, None))
+        channel_url = urljoin(url, channel_href) if channel_href else None
 
         # The video's genre is the genre param on the artist link, not the
         # genre nav menu at the top of the page (that lists every site genre).
@@ -126,7 +123,7 @@ class Hanime1IE(InfoExtractor):
         stats_match = re.search(
             r'觀看次數[：:]\s*([\d.,]+\s*[千萬万億]?)次(?:\s|&nbsp;)*(\d{4}-\d{1,2}-\d{1,2})',
             webpage)
-        view_count = _parse_cjk_count(stats_match.group(1)) if stats_match else None
+        view_count = self._parse_cjk_count(stats_match.group(1)) if stats_match else None
         upload_date = unified_strdate(stats_match.group(2)) if stats_match else None
 
         # Hidden form inputs carry raw like/dislike counts, but only render
@@ -183,28 +180,6 @@ class Hanime1IE(InfoExtractor):
         }
 
 
-def _parse_username(webpage, fallback):
-    # User pages all share the same H1 with the display name. Fall back to
-    # the page <title>, which begins with the page heading (likes / saves /
-    # playlists / "my list" / uploaded) - not the username, but better than
-    # the bare ID.
-    return clean_html(re.sub(
-        r'<[^>]+>', '',
-        next(iter(re.findall(r'<h1[^>]*>([^<]+)</h1>', webpage)), ''),
-    )) or fallback
-
-
-def _extract_video_ids(webpage):
-    # Cards repeat IDs in thumbnail, title, and overlay links; dedupe in
-    # document order so the playlist comes back in the order it was rendered.
-    return list(dict.fromkeys(re.findall(r'/watch\?v=(\d+)', webpage)))
-
-
-def _video_url_result(extractor, video_id):
-    return extractor.url_result(
-        f'https://hanime1.me/watch?v={video_id}', Hanime1IE, video_id)
-
-
 class _Hanime1ListBaseIE(InfoExtractor):
     """Shared bits for list/playlist-style extractors.
 
@@ -220,20 +195,32 @@ class _Hanime1ListBaseIE(InfoExtractor):
     """
     _PAGINATED = False
 
+    @staticmethod
+    def _extract_video_ids(webpage):
+        # Cards repeat IDs in thumbnail, title, and overlay links; dedupe in
+        # document order so the playlist comes back in the order it was rendered.
+        return orderedSet(re.findall(r'/watch\?v=(\d+)', webpage))
+
+    def _video_url_result(self, video_id):
+        return self.url_result(
+            f'https://hanime1.me/watch?v={video_id}', Hanime1IE, video_id)
+
     def _paginated_entries(self, base_url, playlist_id):
         seen = set()
         for page_num in itertools.count(1):
-            page_url = update_url_query(base_url, {'page': page_num})
             webpage = self._download_webpage(
-                page_url, playlist_id, note=f'Downloading page {page_num}',
-                fatal=page_num == 1)
+                base_url, playlist_id, note=f'Downloading page {page_num}',
+                fatal=page_num == 1, query={'page': page_num})
             if not webpage:
                 return
 
-            new_ids = [vid for vid in _extract_video_ids(webpage) if vid not in seen]
-            for vid in new_ids:
+            found_new = False
+            for vid in self._extract_video_ids(webpage):
+                if vid in seen:
+                    continue
                 seen.add(vid)
-                yield _video_url_result(self, vid)
+                found_new = True
+                yield self._video_url_result(vid)
 
             total = int_or_none(self._search_regex(
                 r"urlParams\.get\(['\"]page['\"]\)\s*<\s*(\d+)\s*-\s*1",
@@ -241,12 +228,18 @@ class _Hanime1ListBaseIE(InfoExtractor):
             if total is not None:
                 if page_num >= total:
                     return
-            elif not new_ids:
+            elif not found_new:
                 return
 
     def _single_page_entries(self, webpage):
-        for vid in _extract_video_ids(webpage):
-            yield _video_url_result(self, vid)
+        for vid in self._extract_video_ids(webpage):
+            yield self._video_url_result(vid)
+
+    def _parse_username(self, webpage, fallback):
+        # User pages share an H1 with the display name; fall back to the bare
+        # ID when it's absent.
+        return self._html_search_regex(
+            r'<h1[^>]*>([^<]+)</h1>', webpage, 'username', default=None) or fallback
 
 
 class Hanime1PlaylistIE(_Hanime1ListBaseIE):
@@ -264,9 +257,9 @@ class Hanime1PlaylistIE(_Hanime1ListBaseIE):
         playlist_id = self._match_id(url)
         webpage = self._download_webpage(url, playlist_id)
 
-        title = clean_html(self._search_regex(
+        title = self._html_search_regex(
             r'<h1[^>]*class="[^"]*playlist-title[^"]*"[^>]*>([^<]+)</h1>',
-            webpage, 'playlist title', default=None)) or playlist_id
+            webpage, 'playlist title', default=None) or playlist_id
 
         owner_match = re.search(
             r'class="playlist-author-info"[\s\S]*?href="([^"]*?/user/(\d+))"[^>]*>\s*([^<]+?)\s*</a>',
@@ -301,7 +294,7 @@ class _Hanime1UserListBaseIE(_Hanime1ListBaseIE):
             page_url += f'/{self._TAB}'
         webpage = self._download_webpage(page_url, user_id)
 
-        username = _parse_username(webpage, user_id)
+        username = self._parse_username(webpage, user_id)
         playlist_id = f'{user_id}-{self._TAB}' if self._TAB else user_id
         title = f'{username} - {self._TAB_LABEL}' if self._TAB_LABEL else username
 
@@ -358,7 +351,7 @@ class Hanime1UserHistoryIE(_Hanime1UserListBaseIE):
     }]
 
 
-class Hanime1UserPlaylistsIE(InfoExtractor):
+class Hanime1UserPlaylistsIE(_Hanime1ListBaseIE):
     IE_NAME = 'hanime1:user:playlists'
     _VALID_URL = r'https?://(?:www\.)?hanime1\.me/user/(?P<id>\d+)/playlists/?(?:\?|$)'
     _TESTS = [{
@@ -369,7 +362,7 @@ class Hanime1UserPlaylistsIE(InfoExtractor):
     def _real_extract(self, url):
         user_id = self._match_id(url)
         webpage = self._download_webpage(url, user_id)
-        username = _parse_username(webpage, user_id)
+        username = self._parse_username(webpage, user_id)
 
         def entries():
             seen = set()

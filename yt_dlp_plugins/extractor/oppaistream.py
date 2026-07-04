@@ -9,26 +9,20 @@ class OppaiStreamIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
-        page = self._download_webpage(Request(url,
-                                              extensions={'allow_redirects': False}),
-                                      video_id, expected_status=(200, 302))
-
+        page = self._download_webpage(url, video_id)
         base_url, manifest = self._search_regex(self._MANIFEST_RE, page, 'manifest url', group=(1, 2))
-        
         title = self._html_search_regex(self._TITLE_RE, page, 'title')
         poster = self._search_regex(self._POSTER_RE, page, 'poster', default=None)
 
         formats = []
-        headers = {'Referer': 'https://oppai.stream/'}
 
         for res in ('720', '1080', '4k'):
-            result = self._extract_mpd_formats('{}/{}/{}'.format(base_url, res, manifest),
-                                               video_id, mpd_id=res, headers=headers)
-
+            result = self._extract_mpd_formats(
+                '{}/{}/{}'.format(base_url, res, manifest), video_id, mpd_id=res, headers=headers)
+            
             for fmt in result:
-                fmt['http_headers'] = headers
-
+                fmt['http_headers'] = {'Referer': 'https://oppai.stream/'}
+            
             formats.extend(result)
             
         return {

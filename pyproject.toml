@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "hanime-plugin"
-version = "2026.05.10"
+version = "2026.07.11"
 description = "hanime extractor plugin for yt-dlp"
 authors = [
   { name = "Cynthia", email = "cynthia2048@proton.me" }

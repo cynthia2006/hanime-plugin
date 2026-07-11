@@ -26,7 +26,7 @@ def from_base64(o):
 
 
 class HanimeTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?hanime\.tv/(videos/hentai|hentai/video)/(?P<id>[a-z0-9\-]+)'
+    _VALID_URL = r'https?://(?:www\.)?hanime\.tv/(?:videos/hentai|hentai/video|playlists/[0-9a-z]+/video)/(?P<id>[0-9a-z\-]+)'
     _JS_PREAMBLE = '''
     delete globalThis.process;
 

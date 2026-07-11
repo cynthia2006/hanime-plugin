@@ -1,7 +1,7 @@
 import base64
 
 from yt_dlp.extractor.common import InfoExtractor, ExtractorError
-from yt_dlp.utils import multipart_encode
+from yt_dlp.utils import multipart_encode, urljoin
 
 class HentaiHavenIE(InfoExtractor):
     _VALID_URL = r'https?://hentaihaven\.com/video/(?P<id>[\w\-_]+).*'
@@ -31,20 +31,24 @@ class HentaiHavenIE(InfoExtractor):
             'b': interim['iv']
         })
         
-        result = self._download_json(f"{interim['uri']}/api.php", video_id,
-                                     headers={'Content-Type': mime},
-                                     data=raw_payload)
+        result = self._download_json(urljoin(interim['uri'], './api.php'), video_id,
+                                     headers={'Content-Type': mime}, data=raw_payload)
 
         if not result['status']:
-            raise ExtractorError("Unable to extract JWPlayer data",
-                                 video_id=video_id, ie=HentaiHavenIE.ie_key())
+            raise ExtractorError("Unable to extract JWPlayer data", video_id, ie=HentaiHavenIE.ie_key())
 
-        # HLS manifest is expected to be present in the 'file', however in this case it's inside 'src' key.
-        for src in result['data']['sources']:
-            src['file'] = src.pop('src')
+        # MP4 source; sometimes limited to 720p
+        source = result['data']['sources'][0]['src']
 
-        result = self._parse_jwplayer_data(result['data'], video_id, require_title=False)
-        result['title'] = video_title
+        formats = []
+        formats.extend(self._extract_m3u8_formats(source, video_id, m3u8_id='h264'))
 
-        return result
+        if result['data']['isOctopus']:
+            formats.extend(self._extract_m3u8_formats(urljoin(source, './playlist_vp9.m3u8'), video_id,
+                                                      m3u8_id='vp9'))
 
+        return {
+            'id': video_id,
+            'title': video_title,
+            'formats': formats, 
+        }

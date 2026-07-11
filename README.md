@@ -38,7 +38,7 @@ The following is the support matrix of sites and the respective video resolution
 | --------------- | ----- | ----- | ----- |
 | hstream.moe     | ✅    | ✅ †  | ✅ †  |
 | oppai.stream    | ✅    | ✅ ‡  | ✅ ‡  |
-| hentaihaven.com | ✅    | ✅    | ❌     |
+| hentaihaven.com | ✅ ‡  | ✅ ‡  | ❌     |
 | hanime.tv       | ✅    | ❌*    | ❌     |
 | ohentai.org     | ✅    | ❌     | ❌     |
 | hentaimama.io   | ✅    | ❌     | ❌     |

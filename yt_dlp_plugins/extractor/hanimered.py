@@ -2,23 +2,19 @@ import re
 import json
 import time
 import base64
-import hashlib
 
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import js_to_json
+
+from Cryptodome.Hash import SHA256
 
 class HanimeRedIE(InfoExtractor):
     _VALID_URL = r'https://hanime.red/(?P<id>[0-9a-z\-]+)'
 
     @staticmethod
     def _proof_of_work(s):
-        def sha256(d: bytes):
-            h = hashlib.sha256()
-            h.update(d)
-            return h.digest()
-
         for n in range(10000000):
-            h = sha256(f'{s}{n:x}'.encode('utf-8'))
+            h = SHA256.new(f'{s}{n:x}'.encode('utf-8')).digest()
             if h[0] == 0 and h[1] == 0:
                 return format(n, 'x')
 

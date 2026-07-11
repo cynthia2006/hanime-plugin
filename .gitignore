@@ -3,3 +3,7 @@ __pycache__
 *.pyc
 venv/
 dist/
+.idea/
+/browser-profile/
+/tests/.pytest_cache/
+/tests/output/

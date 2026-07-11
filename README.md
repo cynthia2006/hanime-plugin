@@ -34,19 +34,28 @@ irm https://deno.land/install.ps1 | iex
 
 The following is the support matrix of sites and the respective video resolutions offered. **To request support for a site, or complain about a broken site, please open a [Github issue](https://github.com/cynthia2006/hanime-plugin/issues).**
 
-|                 | 720p  | 1080p | 4K    |
-| --------------- | ----- | ----- | ----- |
-| hstream.moe     | ✅    | ✅ †  | ✅ †  |
-| oppai.stream    | ✅    | ✅ ‡  | ✅ ‡  |
-| hentaihaven.com | ✅    | ✅    | ❌     |
-| hanime.tv       | ✅    | ❌*    | ❌     |
-| ohentai.org     | ✅    | ❌     | ❌     |
-| hentaimama.io   | ✅    | ❌     | ❌     |
-| hanime.red      | ❌     | ✅    | ❌     |
+|                 | 720p  | 1080p | 4K   |
+| --------------- | ----- | ----- | ---- |
+| hstream.moe     | ✅    | ✅ †  | ✅ † |
+| oppai.stream    | ✅    | ✅ ‡  | ✅ ‡ |
+| hentaihaven.com | ✅    | ✅    | ❌    |
+| hanime.tv       | ✅    | ❌*    | ❌    |
+| hanime1.me      | ✅    | ✅    | ❌    |
+| rule34video.com | ✅    | ✅    | ✅   |
+| ohentai.org     | ✅    | ❌     | ❌    |
+| hentaimama.io   | ✅    | ❌     | ❌    |
+| hanime.red      | ❌     | ✅    | ❌    |
 
 \* Requires paid membership, and is beyond the scope of this plugin.
 
 † [AV1](https://en.wikipedia.org/wiki/AV1) codec. ‡ [VP9](https://en.wikipedia.org/wiki/VP9) codec.
+
+
+| Site             | Video | Playlist | User profile / channel | Search | Subscriptions | Works without cookies                          | Works without `--impersonate chrome` | Notes |
+| ---              | :---: | :---:    | :---:                  | :---:  | :---:         | ---                                            |--------------------------------------| --- |
+| hanime1.me       | ✅    | ✅       | ✅                     | ✅     | ✅            | Public videos, search, public user pages       | Usually yes                          | cookies required for `/subscriptions`, `/user/<id>/{likes,saves,histories}` |
+| rule34video.com  | ✅    | ✅       | ✅                     | ✅     | ✅            | Public videos, search, public member tabs      | Yes                                  | cookies required for `/my/*` tabs |
+
 
 ## Examples
 
@@ -60,6 +69,13 @@ or
 
 ```
 $ yt-dlp -f - https://hentaihaven.com/video/soshite-watashi-wa-sensei-ni/episode-1
+```
+
+### Downloading a playlist / search
+
+```
+$ yt-dlp --impersonate chrome 'https://hanime1.me/search?query=Somato'
+$ yt-dlp 'https://rule34video.com/models/seejaydj/'
 ```
 
 ## FAQ

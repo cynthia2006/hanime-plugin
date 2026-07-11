@@ -4,13 +4,14 @@ import time
 
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 
-from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
+# Cryptodomex
+from Cryptodome.Cipher import AES
+from Cryptodome.Random import get_random_bytes
 
 from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import str_or_none, int_or_none, urljoin, ExtractorError
+from yt_dlp.utils import urljoin, ExtractorError
 
-# NOTE Bun will not be supported because Anthropic's AI slop.
+# NOTE Bun will not be supported because of Anthropic's AI slop.
 from yt_dlp.utils._jsruntime import DenoJsRuntime
 
 
@@ -57,7 +58,7 @@ class HanimeTVIE(InfoExtractor):
         if not self._runtime.info:
             raise ExtractorError("DenoJS is required for hanime.tv extractor")
 
-    def _cache_credential_generator(self, url, video_id):
+    def _load_wasm_auth_script(self, url, video_id):
         self._script = self._JS_PREAMBLE
         self._script += self._download_webpage(url, video_id,
             headers={'Referer': 'https://hanime.tv/'}, note='Loading WASM authenticator')
@@ -108,7 +109,7 @@ class HanimeTVIE(InfoExtractor):
             script_url = self._search_regex( 
                 r'<script.*src="(https://hanime-cdn\.com/js/vendor\.[^"]+)', page, "signature generator"
             )
-            self._cache_credential_generator(script_url, video_id)
+            self._load_wasm_auth_script(script_url, video_id)
        
         ssignature, stime = self._generate_credentials()
         payload = self._digest_token({

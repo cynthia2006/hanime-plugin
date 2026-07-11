@@ -9,6 +9,9 @@ description = "hanime extractor plugin for yt-dlp"
 authors = [
   { name = "Cynthia", email = "cynthia2048@proton.me" }
 ]
+dependencies = [
+  "pycryptodomex>=3.23"
+]
 readme = "README.md"
 requires-python = ">=3.9"
 

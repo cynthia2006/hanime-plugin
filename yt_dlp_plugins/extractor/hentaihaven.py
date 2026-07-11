@@ -37,18 +37,25 @@ class HentaiHavenIE(InfoExtractor):
         if not result['status']:
             raise ExtractorError("Unable to extract JWPlayer data", video_id, ie=HentaiHavenIE.ie_key())
 
+        formats = []
+        subtitles = {}
+
         # MP4 source; sometimes limited to 720p
         source = result['data']['sources'][0]['src']
 
-        formats = []
-        formats.extend(self._extract_m3u8_formats(source, video_id, m3u8_id='h264'))
+        fmts, subs = self._extract_m3u8_formats_and_subtitles(source, video_id, m3u8_id='h264')
+        formats.extend(fmts)
+        subtitles.update(subs)
 
         if result['data']['isOctopus']:
-            formats.extend(self._extract_m3u8_formats(urljoin(source, './playlist_vp9.m3u8'), video_id,
-                                                      m3u8_id='vp9'))
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                urljoin(source, './playlist_vp9.m3u8'), video_id, m3u8_id='vp9')
+            formats.extend(fmts)
+            subtitles.update(subs)            
 
         return {
             'id': video_id,
             'title': video_title,
-            'formats': formats, 
+            'formats': formats,
+            'subtitles': subtitles 
         }

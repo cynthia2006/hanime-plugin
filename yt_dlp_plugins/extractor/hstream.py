@@ -48,7 +48,7 @@ class HstreamIE(InfoExtractor):
         
         for res in ('720', '1080', '2160'):
             results = self._extract_mpd_formats('{}/{}/manifest.mpd'.format(cdn_url, res),
-                                                video_id, mpd_id=res)
+                                                 video_id, mpd_id=res)
 
             formats.extend(results)
 

@@ -32,12 +32,71 @@ class HstreamIE(InfoExtractor):
 
         # NOTE Although all CDNs essentially provide same resources, based on the client's
         # country, the speeds may differ.
-        cdn_url = '{}/{}'.format(video['stream_domains'][0], video['stream_url'])
+        stream_domains = video.get('stream_domains') or []
+        domains = [domain.rstrip('/') for domain in stream_domains if domain]
+
+        if domains:
+            orig_urlopen = self._downloader.urlopen
+            current_domain = [domains[0]]
+
+            def custom_urlopen(req, *args, **kwargs):
+                url_str = req if isinstance(req, str) else req.url
+                
+                matched_domain = None
+                for domain in domains:
+                    if domain in url_str:
+                        matched_domain = domain
+                        break
+                
+                if not matched_domain:
+                    return orig_urlopen(req, *args, **kwargs)
+                
+                active_domain = current_domain[0]
+                if matched_domain != active_domain:
+                    url_str = url_str.replace(matched_domain, active_domain, 1)
+                    matched_domain = active_domain
+                    if not isinstance(req, str):
+                        req.url = url_str
+                
+                try:
+                    start_idx = domains.index(matched_domain)
+                except ValueError:
+                    start_idx = 0
+                
+                ordered_domains = domains[start_idx:] + domains[:start_idx]
+                
+                last_err = None
+                for domain in ordered_domains:
+                    new_url = url_str.replace(matched_domain, domain, 1)
+                    
+                    if isinstance(req, str):
+                        test_req = new_url
+                    else:
+                        req.url = new_url
+                        test_req = req
+                    
+                    try:
+                        self.to_screen(f'[hstream] Trying CDN download link: {new_url}')
+                        res = orig_urlopen(test_req, *args, **kwargs)
+                        current_domain[0] = domain
+                        return res
+                    except Exception as err:
+                        self.report_warning(f'[hstream] Failed to download from {new_url}: {err}')
+                        last_err = err
+                        continue
+                
+                if last_err:
+                    raise last_err
+                raise Exception("All stream domains failed")
+
+            self._downloader.urlopen = custom_urlopen
+
+        cdn_url = '{}/{}'.format(domains[0] if domains else video['stream_domains'][0], video['stream_url'])
         formats = []
         
         for res in ('720', '1080', '2160'):
             results = self._extract_mpd_formats('{}/{}/manifest.mpd'.format(cdn_url, res),
-                                                video_id, mpd_id=res)
+                                                 video_id, mpd_id=res)
 
             formats.extend(results)
 

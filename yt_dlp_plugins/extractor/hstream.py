@@ -32,7 +32,18 @@ class HstreamIE(InfoExtractor):
 
         # NOTE Although all CDNs essentially provide same resources, based on the client's
         # country, the speeds may differ.
-        cdn_url = '{}/{}'.format(video['stream_domains'][0], video['stream_url'])
+        orig_urlopen = self._downloader.urlopen
+
+        def _urlopen_with_normalized_path(req, *args, **kwargs):
+            if isinstance(req, str):
+                req = req.replace('\\', '/').replace('%5C', '/').replace('%5c', '/')
+            elif hasattr(req, 'url') and isinstance(req.url, str):
+                req.url = req.url.replace('\\', '/').replace('%5C', '/').replace('%5c', '/')
+            return orig_urlopen(req, *args, **kwargs)
+
+        self._downloader.urlopen = _urlopen_with_normalized_path
+
+        cdn_url = '{}/{}'.format(video['stream_domains'][0], video['stream_url']).replace('\\', '/')
         formats = []
         
         for res in ('720', '1080', '2160'):

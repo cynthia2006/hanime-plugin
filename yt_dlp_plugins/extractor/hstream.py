@@ -53,9 +53,25 @@ class HstreamIE(InfoExtractor):
             formats.extend(results)
 
         poster_url = '{}/{}'.format('https://hstream.moe', video.get('poster'))
+
+        subtitles = {}
+        subtitles['en'] = [{
+            'url': f'{cdn_url}/eng.ass',
+            'ext': 'ass'
+        }]
+
+        extra_subtitles = video.get('extra_subtitles') or {}
+        for lang in extra_subtitles:
+            if lang != 'en':
+                subtitles[lang] = [{
+                    'url': f'{cdn_url}/autotrans/{lang}.ass',
+                    'ext': 'ass'
+                }]
+
         return {
             'id': e_id,
             'title': video.get('title'),
             'thumbnail': poster_url,
-            'formats': formats
+            'formats': formats,
+            'subtitles': subtitles
         }

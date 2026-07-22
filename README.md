@@ -36,7 +36,7 @@ The following is the support matrix of sites and the respective video resolution
 
 |                 | 720p  | 1080p | 4K    |
 | --------------- | ----- | ----- | ----- |
-| hstream.moe     | ✅    | ✅ †  | ✅ †  |
+| hstream.moe     | ✅    | ✅ †  | ❌     |
 | oppai.stream    | ✅    | ✅ ‡  | ✅ ‡  |
 | hentaihaven.com | ✅ ‡  | ✅ ‡  | ❌     |
 | hanime.tv       | ✅    | ❌*    | ❌     |

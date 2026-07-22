@@ -1,9 +1,21 @@
-import re
 import json
+import os.path
 import urllib.parse
 
+import ada_url
+
+from Cryptodome.Hash import SHA1
 from yt_dlp.extractor.common import InfoExtractor
 
+def url_pathjoin(base, *parts):
+    url = ada_url.URL(base)
+    url.pathname = os.path.join(url.pathname, *parts)
+    return url.href
+
+# Git-style hashes
+def domain_hash(url):
+    url = ada_url.URL(url)
+    return SHA1.new(url.hostname.encode('ascii')).hexdigest()[:6]
 
 class HstreamIE(InfoExtractor):
     _VALID_URL = r'https?://hstream\.moe/hentai/(?P<id>[a-z0-9\-]+)'
@@ -30,21 +42,36 @@ class HstreamIE(InfoExtractor):
                     'X-Xsrf-Token': urllib.parse.unquote(xsrf_token)
                 }, data=payload.encode('utf-8'))
 
-        # NOTE Although all CDNs essentially provide same resources, based on the client's
-        # country, the speeds may differ.
-        cdn_url = '{}/{}'.format(video['stream_domains'][0], video['stream_url'])
         formats = []
-        
-        for res in ('720', '1080', '2160'):
-            results = self._extract_mpd_formats('{}/{}/manifest.mpd'.format(cdn_url, res),
-                                                video_id, mpd_id=res)
+        breakpoint()
+        for domain in video['stream_domains']:
+            cdn_url = url_pathjoin(domain, video['stream_url'].replace('\\', '/'))
 
-            formats.extend(results)
+            for quality in ('720', '1080'):
+                manifest_url = url_pathjoin(cdn_url, f'./{quality}/manifest.mpd')
+                results = self._extract_mpd_formats(manifest_url, video_id,
+                                                    mpd_id=f'{quality}-{domain_hash(manifest_url)}')
+                formats.extend(results)
 
-        poster_url = '{}/{}'.format('https://hstream.moe', video.get('poster'))
+        subtitles = {
+            'en': [{
+                'url': url_pathjoin(cdn_url, './eng.ass'),
+                'ext': 'ass'
+            }]
+        }
+
+        # These are AI-translated subtitles; so expect slop ;)
+        extra_subtitles = video.get('extra_subtitles') or {}
+        for lang in extra_subtitles:
+            if lang != 'en':
+                subtitles[lang] = [{
+                    'url': url_pathjoin(cdn_url, f'./autotrans/{lang}.ass'),
+                    'ext': 'ass'
+                }]
+
         return {
             'id': e_id,
             'title': video.get('title'),
-            'thumbnail': poster_url,
-            'formats': formats
+            'formats': formats,
+            'subtitles': subtitles
         }

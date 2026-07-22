@@ -4,13 +4,14 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "hanime-plugin"
-version = "2026.07.14"
+version = "2026.07.22"
 description = "hanime extractor plugin for yt-dlp"
 authors = [
   { name = "Cynthia", email = "cynthia2048@proton.me" }
 ]
 dependencies = [
-  "pycryptodomex>=3.23"
+  "pycryptodomex>=3.23",
+  "ada_url>=1.32",
 ]
 readme = "README.md"
 requires-python = ">=3.9"

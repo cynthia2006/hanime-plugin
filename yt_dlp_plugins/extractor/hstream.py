@@ -43,7 +43,6 @@ class HstreamIE(InfoExtractor):
                 }, data=payload.encode('utf-8'))
 
         formats = []
-        breakpoint()
         for domain in video['stream_domains']:
             cdn_url = url_pathjoin(domain, video['stream_url'].replace('\\', '/'))
 

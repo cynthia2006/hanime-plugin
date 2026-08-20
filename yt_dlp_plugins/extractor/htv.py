@@ -1,18 +1,15 @@
 import json
-import subprocess
 import time
 
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 
 # Cryptodomex
 from Cryptodome.Cipher import AES
+from Cryptodome.Hash import SHA256
 from Cryptodome.Random import get_random_bytes
 
 from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.utils import urljoin, ExtractorError
-
-# NOTE Bun will not be supported because of Anthropic's AI slop.
-from yt_dlp.utils._jsruntime import DenoJsRuntime
+from yt_dlp.utils import urljoin
 
 
 def into_base64(o):
@@ -27,52 +24,13 @@ def from_base64(o):
 
 class HanimeTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?hanime\.tv/(?:videos/hentai|hentai/video|playlists/[0-9a-z]+/video)/(?P<id>[0-9a-z\-]+)'
-    _JS_PREAMBLE = '''
-    delete globalThis.process;
-
-    var window = new Proxy({
-        top: { location: { origin: "https://hanime.tv" } },
-        addEventListener: () => {},
-        dispatchEvent: () => {},
-    }, {
-        set(o, k, v) {
-            if (k == "ssignature" || k == "stime")
-                console.log(k, v);
-            
-            o[k] = v;
-            return true;
-        }
-    });
-
-    globalThis.window = window;
-    '''
     _AES_KEY = bytes.fromhex("5d657a4dcb0bad1c637ff2e221059b10ff17ae39fe855003e846918941f4ebe3")
     _AES_HEADER = bytes.fromhex("6874762d696e7365637572652d7631")
     
     # TODO add _TESTS
 
-    def __init__(self):
-        self._runtime = DenoJsRuntime()
-        self._script = None
-
-        if not self._runtime.info:
-            raise ExtractorError("DenoJS is required for hanime.tv extractor")
-
-    def _load_wasm_auth_script(self, url, video_id):
-        self._script = self._JS_PREAMBLE
-        self._script += self._download_webpage(url, video_id,
-            headers={'Referer': 'https://hanime.tv/'}, note='Loading WASM authenticator')
-
-    def _generate_credentials(self):
-        output = subprocess.run([self._runtime.info.path, 'run', '-'],
-            input=self._script, encoding='utf-8', text=True, capture_output=True)
-
-        if output.returncode == 0:
-            creds = dict(line.split(' ', 1) for line in output.stdout.split('\n', 1))
-            return creds.get('ssignature'), creds.get('stime')
-        else:
-            raise ExtractorError("Signature and timestamp generation failed")
-
+    # This is not an AEAD scheme as much as it is a method of obscuring messages as the KEY and TAG for AES-256 GCM are known
+    # beforehand. Note that, IV could be safely transmitted in the public without breaching the security.
     @classmethod
     def _digest_token(cls, o):
         o = json.dumps(o)
@@ -100,18 +58,23 @@ class HanimeTVIE(InfoExtractor):
 
         return json.loads(plaintext.decode('utf-8'))
 
+    # Based on @barely-sad-one's code. This was perhaps reverse-engineered from the WASM code with some form of LLM assistance,
+    # but it is not disclosed in the pull-request because yt-dlp has a ban on LLMs. Regardless, this approach is arguably less
+    # robust because originally the WASM module was treated as a blackbox, and an appropriate environment was simulated for the
+    # Emscripten binding to produce a signature and its associated timestamp. Although it works, it is less robust to upstream
+    # changes compared to the earlier method of using a WASM runtime.
+    #
+    # https://github.com/barely-sad-one/yt-dlp/blob/74cdff3736699255ec34ed235653b45eda51171d/yt_dlp/extractor/hanime.py#L48-L50
+    @classmethod
+    def _generate_credentials_local(cls):
+        ts = time.time_ns() // 1000000000
+        digest = SHA256.new(f'{ts},Xkdi29,https://hanime.tv,mn2,{ts}'.encode('utf-8')).hexdigest()
+        return digest, ts
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        page = self._download_webpage(url, video_id)
-
-        # This script has to be downloaded once per instantiation of this extractor.
-        if not self._script:
-            script_url = self._search_regex( 
-                r'<script.*src="(https://hanime-cdn\.com/js/vendor\.[^"]+)', page, "signature generator"
-            )
-            self._load_wasm_auth_script(script_url, video_id)
-       
-        ssignature, stime = self._generate_credentials()
+        page = self._download_webpage(url, video_id)       
+        ssignature, stime = self._generate_credentials_local()
         payload = self._digest_token({
             'timestamp_unix': time.time_ns() // 1000000000,
             'directive': 'htv_player_handshake',
@@ -131,6 +94,7 @@ class HanimeTVIE(InfoExtractor):
             data=json.dumps({'token': payload}).encode('ascii'),
             note='Downloading video manifest')
 
+        # Manifest is transmitted in headers to confuse scrapers; whether or not it is optimal is not important.
         manifest = self._parse_token(handle.headers['X-Token'])
         formats = []
 

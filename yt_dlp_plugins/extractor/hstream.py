@@ -1,21 +1,16 @@
 import json
-import os.path
 import urllib.parse
 
-import ada_url
+import yarl
 
 from Cryptodome.Hash import SHA1
 from yt_dlp.extractor.common import InfoExtractor
-
-def url_pathjoin(base, *parts):
-    url = ada_url.URL(base)
-    url.pathname = os.path.join(url.pathname, *parts)
-    return url.href
+from ..utils import urljoinpath
 
 # Git-style hashes
 def domain_hash(url):
-    url = ada_url.URL(url)
-    return SHA1.new(url.hostname.encode('ascii')).hexdigest()[:6]
+    url = yarl.URL(url)
+    return SHA1.new(url.host.encode('ascii')).hexdigest()[:6]
 
 class HstreamIE(InfoExtractor):
     _VALID_URL = r'https?://hstream\.moe/hentai/(?P<id>[a-z0-9\-]+)'
@@ -44,17 +39,17 @@ class HstreamIE(InfoExtractor):
 
         formats = []
         for domain in video['stream_domains']:
-            cdn_url = url_pathjoin(domain, video['stream_url'].replace('\\', '/'))
+            cdn_url = urljoinpath(domain, video['stream_url'].replace('\\', '/'))
 
             for quality in ('720', '1080'):
-                manifest_url = url_pathjoin(cdn_url, f'./{quality}/manifest.mpd')
+                manifest_url = urljoinpath(cdn_url, f'./{quality}/manifest.mpd')
                 results = self._extract_mpd_formats(manifest_url, video_id,
                                                     mpd_id=f'{quality}-{domain_hash(manifest_url)}')
                 formats.extend(results)
 
         subtitles = {
             'en': [{
-                'url': url_pathjoin(cdn_url, './eng.ass'),
+                'url': urljoinpath(cdn_url, './eng.ass'),
                 'ext': 'ass'
             }]
         }
@@ -64,7 +59,7 @@ class HstreamIE(InfoExtractor):
         for lang in extra_subtitles:
             if lang != 'en':
                 subtitles[lang] = [{
-                    'url': url_pathjoin(cdn_url, f'./autotrans/{lang}.ass'),
+                    'url': urljoinpath(cdn_url, f'./autotrans/{lang}.ass'),
                     'ext': 'ass'
                 }]
 

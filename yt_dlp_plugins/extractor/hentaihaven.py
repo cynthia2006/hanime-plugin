@@ -1,8 +1,8 @@
-import ada_url
 import base64
 
 from yt_dlp.extractor.common import InfoExtractor, ExtractorError
 from yt_dlp.utils import multipart_encode
+from ..utils import urljoinpath, urljoin
 
 class HentaiHavenIE(InfoExtractor):
     _VALID_URL = r'https?://hentaihaven\.com/video/(?P<id>[\w\-_]+).*'
@@ -32,7 +32,7 @@ class HentaiHavenIE(InfoExtractor):
             'b': interim['iv']
         })
         
-        result = self._download_json(ada_url.join_url(interim['uri'], './api.php'), video_id,
+        result = self._download_json(urljoinpath(interim['uri'], 'api.php'), video_id,
                                      headers={'Content-Type': mime}, data=raw_payload)
 
         if not result['status']:
@@ -50,9 +50,9 @@ class HentaiHavenIE(InfoExtractor):
 
         if result['data']['isOctopus']:
             fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                ada_url.join_url(source, './playlist_vp9.m3u8'), video_id, m3u8_id='vp9')
+                urljoin(source, './playlist_vp9.m3u8'), video_id, m3u8_id='vp9', fatal=False)
             formats.extend(fmts)
-            subtitles.update(subs)            
+            subtitles.update(subs)
 
         return {
             'id': video_id,

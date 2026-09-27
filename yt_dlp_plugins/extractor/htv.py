@@ -1,8 +1,6 @@
 import json
 import time
 
-import ada_url
-
 from base64 import urlsafe_b64encode, urlsafe_b64decode
 
 # Cryptodomex
@@ -11,6 +9,7 @@ from Cryptodome.Hash import SHA256
 from Cryptodome.Random import get_random_bytes
 
 from yt_dlp.extractor.common import InfoExtractor
+from ..utils import urljoin
 
 
 def into_base64(o):
@@ -103,7 +102,7 @@ class HanimeTVIE(InfoExtractor):
             # NOTE Premium streams are not supported and will not be supported in future.
             if source['kind'] == 'normal':
                 result = self._extract_m3u8_formats(
-                    ada_url.join_url('https://hanime.tv', source['src']), video_id, ext='mp4', m3u8_id=source['label'])
+                    urljoin('https://hanime.tv', source['src']), video_id, ext='mp4', m3u8_id=source['label'])
                 formats.extend(result)
 
         video_title = self._html_search_regex(r'<h1[^>]+?>([^<]+)', page, 'Video title')

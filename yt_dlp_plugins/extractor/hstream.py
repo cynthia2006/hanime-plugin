@@ -5,6 +5,7 @@ import yarl
 
 from Cryptodome.Hash import SHA1
 from yt_dlp.extractor.common import InfoExtractor
+from yt_dlp.utils import ExtractorError
 from ..utils import urljoinpath
 
 # Git-style hashes
@@ -44,8 +45,15 @@ class HstreamIE(InfoExtractor):
             for quality in ('720', '1080'):
                 manifest_url = urljoinpath(cdn_url, f'./{quality}/manifest.mpd')
                 results = self._extract_mpd_formats(manifest_url, video_id,
-                                                    mpd_id=f'{quality}-{domain_hash(manifest_url)}')
+                                                    mpd_id=f'{quality}-{domain_hash(manifest_url)}',
+                                                    fatal=False)
                 formats.extend(results)
+
+            if formats:
+                break
+
+        if not formats:
+            raise ExtractorError('No content available on any CDN', expected=True)
 
         subtitles = {
             'en': [{
